@@ -75,6 +75,9 @@ async def verify_webhook(request: Request):
 
 
 def send_whatsapp_message(recipient, message):
+    # Ensure message body is never empty
+    if not message or not message.strip():
+        message = "Hello! How can Orb Digital Solutions assist you today?"
     url = f"https://graph.facebook.com/v20.0/{PHONE_NUMBER_ID}/messages"
 
     headers = {
