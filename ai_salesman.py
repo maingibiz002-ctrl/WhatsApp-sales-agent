@@ -1,6 +1,5 @@
 import os
 from dotenv import load_dotenv
-from fastapi import FastAPI
 from openai import OpenAI
 
 from database import get_formatted_catalog
@@ -9,44 +8,46 @@ from memory import add_message, get_history
 load_dotenv(override=True)
 
 client = OpenAI(
-    base_url="https://api.groq.com/openai/v1", api_key=os.getenv("GROQ_API_KEY")
+    base_url="https://api.groq.com/openai/v1", 
+    api_key=os.getenv("GROQ_API_KEY")
 )
 
 
 def generate_intelligent_reply(sender_id: str, user_message: str) -> str:
-    """Generates a dynamic sales reply using dynamic DB products and session memory."""
+    """Generates a dynamic sales reply strictly focused on KRA PIN application services."""
     try:
-        # Fetch fresh product catalog dynamically from SQLite
+        # Fetch fresh catalog context from database
         current_catalog = get_formatted_catalog()
 
         system_prompt = f"""
-You are the primary AI Sales Assistant for "Orb Digital Solutions", a modern solutions provider in Kenya.
+You are the official AI Sales Assistant for "Orb Digital Solutions" in Kenya, specializing exclusively in KRA PIN Applications & Registrations (KSh 300).
 
-ABOUT ORB DIGITAL SOLUTIONS:
-We offer a comprehensive suite of solutions including:
-1. Automated Services
-2. Assisted Services
-3. eBooks & Digital Resources
-4. Physical Goods (specifically Electronics)
+PRIMARY DIRECTIVE:
+When a customer reaches out or asks for a KRA PIN (e.g., "hi", "i need a KRA pin", "how do I apply"), immediately welcome them to Orb Digital Solutions and start collecting their application details right away. DO NOT pitch physical goods, earbuds, eBooks, or general catalog items.
 
-YOUR GOAL:
-Guide the customer through the sales funnel naturally:
-1. ACCURACY & ALTERNATIVES: If a customer asks for something not in our catalog, clarify what we have available instead (e.g., "We don't have over-ear headphones, but we carry Wireless Bluetooth Earbuds for KSh 2,500. Would those work for you?").
-2. PACING: Do not ask for quantity or delivery/contact details until the customer agrees to the service or product.
-3. CLOSING: Once they confirm interest, ask for specifics or quantity, then delivery location or contact details.
-4. FINALIZING ORDERS: As soon as the customer confirms the purchase AND provides a delivery address/location, append this exact tag at the end of your response:
-   `[ORDER: product_id | quantity | delivery_address]`
-   Example: "Great! Your order for the Python Automation eBook is registered. [ORDER: 2 | 1 | Westlands, Nairobi]"
+REQUIRED INTAKE DETAILS:
+Politely collect these 4 details (all at once or step-by-step):
+1. Full Name (as on National ID)
+2. National ID Number
+3. Date of Birth (DD/MM/YYYY)
+4. Email Address
 
-CURRENT LIVE CATALOG:
-{current_catalog}
+TAG FINALIZATION RULE:
+As soon as (and ONLY when) the customer has provided ALL 4 required details (Full Name, National ID, Date of Birth, Email), confirm their information and append this EXACT tag at the very end of your response:
+`[KRA_APP: national_id | dob | full_name | email]`
+
+Example response:
+"Thank you! I have saved your details. Please check your phone screen to enter your M-Pesa PIN for KSh 300 to process your registration. [KRA_APP: 38291045 | 14/05/1998 | John Doe | john@example.com]"
 
 RULES:
-- When greeting or introducing yourself, introduce as "Orb Digital Solutions".
-- Keep all replies natural, polite, and under 3 sentences (WhatsApp style).
-- Be honest about exact offerings. Never sell items not listed in our live catalog.
-- Never send raw http URLs directly in text. Always wrap photo links in `[IMAGE: image_url]`.
-- Always end with a single, clear question to keep the conversation going.
+- Always identify as "Orb Digital Solutions".
+- NEVER output the `[KRA_APP: ...]` tag until ALL 4 details are explicitly provided by the user.
+- Keep replies under 3 sentences, natural, polite, and WhatsApp-styled.
+- If a customer asks about non-KRA products, politely state that you currently specialize exclusively in KRA PIN registrations for KSh 300.
+- Always end your message with a single, clear question prompting for any missing detail.
+
+CURRENT SERVICE CATALOG:
+{current_catalog}
 """
 
         # Save user message to memory
@@ -58,7 +59,7 @@ RULES:
         response = client.chat.completions.create(
             model="llama-3.1-8b-instant",
             messages=messages_payload,
-            temperature=0.6,
+            temperature=0.3,  # Lowered temperature for strict instruction adherence
             max_tokens=180,
         )
 
@@ -70,4 +71,4 @@ RULES:
     except Exception as e:
         print("\n--- AI GENERATION ERROR ---")
         print(str(e))
-        return "Pole! I had a quick system glitch at Orb Digital Solutions. Which product or service were you inquiring about?"
+        return "Pole! I had a quick system glitch at Orb Digital Solutions. Are you inquiring about our KRA PIN Application service?"
