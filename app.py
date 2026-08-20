@@ -138,13 +138,27 @@ def process_whatsapp_message(sender: str, message_body: str, background_tasks: B
         reply = generate_intelligent_reply(sender, message_body)
 
         # 3. Process Action Tags & Backend Tasks
+        stk_match = re.search(r"\[TRIGGER_STK:\s*(\d+(?:\.\d+)?)\]", reply)
         nil_match = re.search(r"\[KRA_NIL:\s*(.*?)\s*\|\s*(.*?)\s*\|\s*(.*?)\]", reply)
         cert_match = re.search(r"\[KRA_CERT:\s*(.*?)\s*\|\s*(.*?)\]", reply)
         kra_app_match = re.search(r"\[KRA_APP:\s*(.*?)\s*\|\s*(.*?)\s*\|\s*(.*?)\s*\|\s*(.*?)\]", reply)
         tech_match = re.search(r"\[TECH_LEAD:\s*(.*?)\s*\|\s*(.*?)\s*\|\s*(.*?)\]", reply)
         store_match = re.search(r"\[STORE_INQUIRY:\s*(.*?)\s*\|\s*(.*?)\]", reply)
 
-        if nil_match:
+        # Handle Standalone Payment Prompt Request
+        if stk_match:
+            amount = float(stk_match.group(1))
+            reply = re.sub(r"\[TRIGGER_STK:.*?\]", "", reply).strip()
+            logger.info(f"💳 [Standalone STK Prompt Requested] Sender: {sender} | Amount: KES {amount}")
+
+            pay_res = paystack_client.trigger_mpesa_stk_push(phone_number=sender, amount=amount)
+            if pay_res.get("status"):
+                reply += "\n\n💳 *Payment Prompt Sent!* Please check your phone screen and enter your M-Pesa PIN."
+            else:
+                reply += f"\n\n⚠️ Could not send prompt. Please pay via M-Pesa Till 3543414."
+
+        # Handle Full KRA NIL Submission + Payment
+        elif nil_match:
             full_name, kra_pin, password = [nil_match.group(i).strip() for i in range(1, 4)]
             reply = re.sub(r"\[KRA_NIL:.*?\]", "", reply).strip()
             logger.info(f"📝 [KRA NIL Return Captured] Name: {full_name} | PIN: {kra_pin}")
@@ -152,6 +166,8 @@ def process_whatsapp_message(sender: str, message_body: str, background_tasks: B
             pay_res = paystack_client.trigger_mpesa_stk_push(phone_number=sender, amount=200.0)
             if pay_res.get("status"):
                 reply += "\n\n💳 *Payment Prompt Sent!* Please enter your M-Pesa PIN on your phone screen to start automatic filing."
+            else:
+                reply += "\n\n⚠️ Could not send prompt. You can pay via M-Pesa Till 3543414."
 
             background_tasks.add_task(execute_kra_nil_task, sender, kra_pin, password)
 
@@ -168,6 +184,8 @@ def process_whatsapp_message(sender: str, message_body: str, background_tasks: B
             pay_res = paystack_client.trigger_mpesa_stk_push(phone_number=sender, amount=300.0)
             if pay_res.get("status"):
                 reply += "\n\n💳 *Payment Prompt Sent!* Please enter your M-Pesa PIN on your phone screen to complete application."
+            else:
+                reply += "\n\n⚠️ Could not send prompt. You can pay via M-Pesa Till 3543414."
 
         elif tech_match:
             client_name, contact_info, reqs = [tech_match.group(i).strip() for i in range(1, 4)]
@@ -202,7 +220,6 @@ def process_whatsapp_message(sender: str, message_body: str, background_tasks: B
 
     except Exception as e:
         logger.error(f"Error executing background WhatsApp processing: {e}")
-
 # ------------------------------------------------------------------------------
 # FASTAPI ENDPOINTS
 # ------------------------------------------------------------------------------
