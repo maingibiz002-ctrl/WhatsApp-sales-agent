@@ -1,3 +1,4 @@
+import re
 import os
 from dotenv import load_dotenv
 from openai import OpenAI
@@ -11,7 +12,7 @@ client = OpenAI(
 )
 
 def generate_intelligent_reply(sender_id: str, user_message: str) -> str:
-    """Generates dynamic sales replies for KRA NIL Returns & PIN Certificates."""
+    """Generates dynamic sales replies and strips out internal model reasoning tags."""
     try:
         system_prompt = """
 You are the official AI Sales Assistant for "Orb Digital Solutions" in Kenya.
@@ -28,7 +29,7 @@ RULES FOR DATA COLLECTION:
 - If customer wants a NIL RETURN, ask for their: Full Name, KRA PIN, and iTax Password.
   Once ALL 3 are provided, output EXACT tag at the end: `[KRA_NIL: full_name | kra_pin | itax_password]`
 
-- Keep replies brief (1-3 sentences), professional, and WhatsApp-friendly. Do not use tools.
+- Keep replies brief (1-3 sentences), professional, and WhatsApp-friendly.
 """
 
         add_message(sender_id, "user", user_message)
@@ -43,10 +44,14 @@ RULES FOR DATA COLLECTION:
             max_tokens=180,
         )
 
-        bot_reply = response.choices[0].message.content.strip()
-        add_message(sender_id, "assistant", bot_reply)
-        return bot_reply
+        raw_reply = response.choices[0].message.content.strip()
+
+        # Strip out <think>...</think> blocks if present
+        cleaned_reply = re.sub(r'<think>.*?</think>', '', raw_reply, flags=re.DOTALL).strip()
+
+        add_message(sender_id, "assistant", cleaned_reply)
+        return cleaned_reply
 
     except Exception as e:
         print(f"\n--- AI GENERATION ERROR ---: {e}")
-        return "Welcome to Orb Digital Solutions! To download your KRA PIN Certificate, please reply with your KRA PIN and iTax Password."
+        return "Welcome to Orb Digital Solutions! How can we assist you with your KRA services today?"
