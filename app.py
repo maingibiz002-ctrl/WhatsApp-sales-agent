@@ -15,6 +15,8 @@ from services.kra_automator import KRAAutomator
 
 load_dotenv(override=True)
 
+app = FastAPI()
+
 # ==============================================================================
 # SECTION 1: SERVER CONFIGURATION & LOGGING
 # (Edit this section ONLY if changing server environment variables or API ports)
