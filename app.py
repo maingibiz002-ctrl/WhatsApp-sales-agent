@@ -11,7 +11,7 @@ from fastapi.templating import Jinja2Templates
 from ai_salesman import generate_intelligent_reply
 import database as db
 from paystack import PaystackManager
-from kra_automator import KRAAutomator
+from services.kra_automator import KRAAutomator
 
 load_dotenv(override=True)
 
