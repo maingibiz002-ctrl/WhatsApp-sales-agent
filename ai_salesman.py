@@ -13,15 +13,12 @@ client = OpenAI(
 
 def generate_intelligent_reply(sender_id: str, user_message: str) -> str:
     """
-    Generates structured sales and support replies for Orb Digital Solutions across:
-    1. Software & Tech Development
-    2. Bureau & Cyber Services
-    3. Electronics & Computer Store
+    Generates structured sales and support replies for Orb Digital Solutions.
     """
     try:
         system_prompt = """
 You are the primary AI Sales & Customer Support Assistant for "Orb Digital Solutions" in Kenya.
-Your role is to handle customer inquiries across our four main business divisions clearly and professionally.
+DO NOT write step-by-step thinking or internal reasoning tags. Respond directly to the customer.
 
 ---
 
@@ -42,13 +39,6 @@ Your role is to handle customer inquiries across our four main business division
 
 ---
 
-### COMMUNICATION STYLE:
-- **Professional & Helpfully Articulate**: Maintain a warm, business-ready, polite tone.
-- **WhatsApp Optimized**: Use clean spacing, concise bullet points (`•`), and **bolding** for high scannability.
-- **Direct & Helpful**: Respond directly without internal reasoning markers.
-
----
-
 ### DATA COLLECTION PROTOCOLS & ACTION TAGS:
 - **KRA PIN Certificate**:
   - Ask for: **KRA PIN** and **iTax Password**.
@@ -58,31 +48,31 @@ Your role is to handle customer inquiries across our four main business division
   - Ask for: **Full Name**, **KRA PIN**, and **iTax Password**.
   - Append tag once provided: `[KRA_NIL: full_name | kra_pin | itax_password]`
 
+- **KRA General / Unspecified Filing**:
+  - Ask whether they need a **NIL Return** (KSh 200) or a **PIN Certificate Download** (KSh 150).
+
 - **Software / Custom Tech Development**:
-  - Ask for: **Client Name**, **Project/Service details**, and **Email or Phone Number**.
+  - Ask for: **Client Name**, **Project details**, and **Contact info**.
   - Append tag once provided: `[TECH_LEAD: name | contact | requirements]`
 
 - **Computer & Electronics Purchase**:
   - Ask for: **Item/Specs interested in** and **Preferred Budget or Delivery Location**.
   - Append tag once provided: `[STORE_INQUIRY: item | budget_or_location]`
-
-- **General Greetings**:
-  - Welcomingly introduce **Orb Digital Solutions**, briefly outline our core categories (Software, Cyber/Bureau, Computer Store), and ask how you can assist.
 """
 
         # Save user message
         add_message(sender_id, "user", user_message)
 
-        # Build payload
+        # Build message history
         messages_payload = [{"role": "system", "content": system_prompt}]
         messages_payload.extend(get_history(sender_id))
 
-        # API Call
+        # API Call with zero temperature to reduce reasoning chatter and expanded max_tokens
         response = client.chat.completions.create(
             model="qwen/qwen3.6-27b",
             messages=messages_payload,
-            temperature=0.3,
-            max_tokens=650,
+            temperature=0.0,
+            max_tokens=1000,
         )
 
         raw_reply = response.choices[0].message.content.strip()
@@ -91,12 +81,17 @@ Your role is to handle customer inquiries across our four main business division
         cleaned_reply = re.sub(r'<think>.*?(?:</think>|$)', '', raw_reply, flags=re.DOTALL).strip()
         cleaned_reply = re.sub(r'<thought>.*?(?:</thought>|$)', '', cleaned_reply, flags=re.DOTALL).strip()
 
+        # Smart fallback if output was consumed entirely by reasoning
         if not cleaned_reply:
-            cleaned_reply = "Welcome to **Orb Digital Solutions**! We specialize in Software Development, Cyber & Bureau Services, and Computers & Electronics. How can we assist you today?"
+            user_msg_lower = user_message.lower()
+            if "kra" in user_msg_lower or "filing" in user_msg_lower or "fillings" in user_msg_lower:
+                cleaned_reply = "We can help you with your KRA filings! Are you looking to file a **NIL Tax Return** (KSh 200) or download/reprint a **KRA PIN Certificate** (KSh 150)?"
+            else:
+                cleaned_reply = "How can we assist you with our Software, Cyber/Bureau, or Computer Store services today?"
 
         add_message(sender_id, "assistant", cleaned_reply)
         return cleaned_reply
 
     except Exception as e:
         print(f"\n--- AI GENERATION ERROR ---: {e}")
-        return "Welcome to **Orb Digital Solutions**! How can we assist you with our services today?"
+        return "We can assist you with KRA filings, Bureau & Cyber services, Software Development, and Computer sales. How can we help you today?"
