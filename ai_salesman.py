@@ -53,7 +53,7 @@ CURRENT SERVICE CATALOG:
         messages_payload.extend(get_history(sender_id))
 
         response = client.chat.completions.create(
-    model="llama-3.3-70b-versatile",  # Active flagship model on Groq
+    model="openai/gpt-oss-20b",  # Active open chat model on Groq
     messages=messages_payload,
     temperature=0.2,
     max_tokens=180,
