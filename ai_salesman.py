@@ -53,12 +53,12 @@ CURRENT SERVICE CATALOG:
         messages_payload.extend(get_history(sender_id))
 
         response = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=messages_payload,
-            temperature=0.2,
-            max_tokens=180,
-        )
+         model="llama3-70b-8192",  # OR use "llama-3.1-8b-instant"
+         messages=messages_payload,
+         temperature=0.2,
+          max_tokens=180,
 
+          )
         bot_reply = response.choices[0].message.content.strip()
         add_message(sender_id, "assistant", bot_reply)
 
