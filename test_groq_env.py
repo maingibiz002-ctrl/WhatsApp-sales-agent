@@ -29,7 +29,7 @@ for m in models:
     print(f"  - {m}")
 
 # 2. Test completion with first model
-working_model = models[0] if models else "llama-3.1-8b-instant"
+working_model = "openai/gpt-oss-20b"
 print(f"\n--- Testing Chat Completion with '{working_model}' ---")
 
 payload = {
