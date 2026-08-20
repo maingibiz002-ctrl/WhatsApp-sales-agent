@@ -17,6 +17,15 @@ load_dotenv(override=True)
 
 app = FastAPI()
 
+
+# ------------------------------------------------------------------------------
+# META WHATSAPP & ADMIN CONFIGURATION (MUST BE DEFINED HERE)
+# ------------------------------------------------------------------------------
+PHONE_NUMBER_ID = os.getenv("PHONE_NUMBER_ID", "").strip()
+WHATSAPP_TOKEN = os.getenv("WHATSAPP_TOKEN", "").strip()
+ADMIN_PHONE = os.getenv("ADMIN_PHONE_NUMBER", "").strip()
+PROCESSED_MESSAGE_IDS = set()
+
 # ==============================================================================
 # SECTION 1: SERVER CONFIGURATION & LOGGING
 # (Edit this section ONLY if changing server environment variables or API ports)
