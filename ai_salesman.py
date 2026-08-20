@@ -6,6 +6,7 @@ from memory import add_message, get_history
 
 load_dotenv(override=True)
 
+# Initialize Groq client using OpenAI SDK format
 client = OpenAI(
     base_url="https://api.groq.com/openai/v1", 
     api_key=os.getenv("GROQ_API_KEY")
@@ -13,7 +14,7 @@ client = OpenAI(
 
 def generate_intelligent_reply(sender_id: str, user_message: str) -> str:
     """
-    Generates structured sales and support replies for Orb Digital Solutions.
+    Generates generalized, service-agnostic sales, negotiation, and support replies.
     """
     try:
         system_prompt = """
@@ -29,9 +30,14 @@ STRICT FORMATTING RULES:
 4. Answer directly, ask a simple follow-up, and stop.
 
 CONVERSATION & STATE RULES:
-1. STRICT CONTINUITY: Once a user expresses interest in ANY specific service (KRA, Software Development, Cyber/Bureau, Store Items, Proxy/Tunneling, etc.), NEVER reset or fall back to the generic welcome menu.
-2. DIRECT NEXT STEP: When a user confirms or selects a specific service, immediately prompt for the exact details or credentials needed to execute that specific service.
-3. CONTEXT RECOGNITION: Interpret short affirmative replies (e.g., "yeah", "yes", "i want that", "send details") as confirmation of the service discussed in the preceding message.
+1. STRICT CONTINUITY: Once a user expresses interest in ANY service, NEVER reset or fall back to a generic welcome message.
+2. DIRECT NEXT STEP: When a user confirms or selects any service, immediately prompt for the exact details, specs, or credentials needed to execute that specific service.
+3. CONTEXT RECOGNITION: Interpret short affirmative replies (e.g., "yeah", "yes", "i want that", "send details") as confirmation of whatever service was discussed in the preceding message.
+
+NEGOTIATION & CLOSING SKILLS:
+1. DISCOUNT FLEXIBILITY: Standard rates are primary, but if a customer pushes for a lower price, hesitates on cost, or requests multiple/bulk services, you are authorized to offer a slight, friendly discount to close the deal.
+2. VALUE SELLING: Highlight convenience, fast turnaround, accuracy, and hassle-free execution across all divisions.
+3. CALL TO ACTION: Never end a pricing or service inquiry without a clear closing question. Example: "I can give you a discount of KSh 200 off right now so we get started immediately. Shall we proceed?"
 
 ### OUR SERVICES & DIVISIONS:
 
@@ -40,8 +46,8 @@ CONVERSATION & STATE RULES:
    - Automation scripts, messaging bots (WhatsApp/Telegram), MT5/TradingView indicators & Expert Advisors (EAs).
 
 2. **Bureau & Cyber Services**:
-   - **KRA Services**: Individual NIL Tax Returns (KSh 200), PIN Certificate Download (KSh 150), New PIN Registration (KSh 300).
-   - **E-Government Portals**: eCitizen, KUCCPS course applications, HELB/HEF loans, NTSA (Smart DL, logbooks), DCI Good Conduct applications.
+   - **KRA Services**: Individual NIL Tax Returns (KSh 200 standard / KSh 150 offer), PIN Certificate Download (KSh 150), New PIN Registration (KSh 300).
+   - **E-Government Portals**: eCitizen, KUCCPS applications, HELB/HEF loans, NTSA (Smart DL, logbooks), DCI Good Conduct applications.
    - **Bureau Services**: Document formatting, CVs, typesetting, high-volume printing, scanning, laminating, and hardcover/spiral binding.
 
 3. **Electronics & Computer Store**:
@@ -71,38 +77,35 @@ CONVERSATION & STATE RULES:
   - Append tag once provided: `[STORE_INQUIRY: item | budget_or_location]`
 """
 
-        # Save user message
+        # Save incoming user message
         add_message(sender_id, "user", user_message)
 
         # Build message history
         messages_payload = [{"role": "system", "content": system_prompt}]
         messages_payload.extend(get_history(sender_id))
 
-        # API Call with zero temperature to reduce reasoning chatter and expanded max_tokens
+        # API Call using valid Groq model string
         response = client.chat.completions.create(
-            model="qwen/qwen3.6-27b",
+            model="llama-3.3-70b-versatile",
             messages=messages_payload,
-            temperature=0.0,
-            max_tokens=1000,
+            temperature=0.2,
+            max_tokens=500,
         )
 
         raw_reply = response.choices[0].message.content.strip()
 
-        # Clean reasoning blocks if generated
+        # Clean reasoning tags if any remain
         cleaned_reply = re.sub(r'<think>.*?(?:</think>|$)', '', raw_reply, flags=re.DOTALL).strip()
         cleaned_reply = re.sub(r'<thought>.*?(?:</thought>|$)', '', cleaned_reply, flags=re.DOTALL).strip()
 
-        # Smart fallback if output was consumed entirely by reasoning
+        # Service-agnostic fallback if output was consumed
         if not cleaned_reply:
-            user_msg_lower = user_message.lower()
-            if "kra" in user_msg_lower or "filing" in user_msg_lower or "fillings" in user_msg_lower:
-                cleaned_reply = "We can help you with your KRA filings! Are you looking to file a **NIL Tax Return** (KSh 200) or download/reprint a **KRA PIN Certificate** (KSh 150)?"
-            else:
-                cleaned_reply = "How can we assist you with our Software, Cyber/Bureau, or Computer Store services today?"
+            cleaned_reply = "Try again later, or send over the details of what you need so we can assist you immediately![0743634717]"
 
+        # Save assistant reply to memory
         add_message(sender_id, "assistant", cleaned_reply)
         return cleaned_reply
 
     except Exception as e:
         print(f"\n--- AI GENERATION ERROR ---: {e}")
-        return "We can assist you with KRA filings, Bureau & Cyber services, Software Development, and Computer sales. How can we help you today?"
+        return "Sorry, I encountered an error while generating a reply. Please try again later or provide more details about your request.[0743634717]"
