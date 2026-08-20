@@ -57,7 +57,7 @@ CURRENT SERVICE CATALOG:
         messages_payload.extend(get_history(sender_id))
 
         response = client.chat.completions.create(
-            model="llama-3.1-8b-instant",
+            model="llama-3.3-70b-versatile",  # Updated to Groq's active model
             messages=messages_payload,
             temperature=0.3,  # Lowered temperature for strict instruction adherence
             max_tokens=180,
