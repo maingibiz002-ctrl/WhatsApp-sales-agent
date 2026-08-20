@@ -1,5 +1,5 @@
-import re
 import os
+import re
 from dotenv import load_dotenv
 from openai import OpenAI
 from memory import add_message, get_history
@@ -12,7 +12,10 @@ client = OpenAI(
 )
 
 def generate_intelligent_reply(sender_id: str, user_message: str) -> str:
-    """Generates dynamic sales replies and strips out internal model reasoning tags."""
+    """
+    Generates dynamic sales replies for KRA services and strips out 
+    internal reasoning blocks (<think>...).
+    """
     try:
         system_prompt = """
 You are the official AI Sales Assistant for "Orb Digital Solutions" in Kenya.
@@ -32,23 +35,32 @@ RULES FOR DATA COLLECTION:
 - Keep replies brief (1-3 sentences), professional, and WhatsApp-friendly.
 """
 
+        # Save user message to memory
         add_message(sender_id, "user", user_message)
 
+        # Build message history payload
         messages_payload = [{"role": "system", "content": system_prompt}]
         messages_payload.extend(get_history(sender_id))
 
+        # Request completion from Groq
         response = client.chat.completions.create(
             model="qwen/qwen3.6-27b",
             messages=messages_payload,
             temperature=0.2,
-            max_tokens=180,
+            max_tokens=250,
         )
 
         raw_reply = response.choices[0].message.content.strip()
 
-        # Strip out <think>...</think> blocks if present
-        cleaned_reply = re.sub(r'<think>.*?</think>', '', raw_reply, flags=re.DOTALL).strip()
+        # Regex: Aggressively strip out <think>...</think> OR <think> to the end of string
+        cleaned_reply = re.sub(r'<think>.*?(?:</think>|$)', '', raw_reply, flags=re.DOTALL).strip()
+        cleaned_reply = re.sub(r'<thought>.*?(?:</thought>|$)', '', cleaned_reply, flags=re.DOTALL).strip()
 
+        # Fallback if reasoning stripped the whole response
+        if not cleaned_reply:
+            cleaned_reply = "Welcome to Orb Digital Solutions! How can we assist you with your KRA services today?"
+
+        # Save cleaned reply to memory
         add_message(sender_id, "assistant", cleaned_reply)
         return cleaned_reply
 
