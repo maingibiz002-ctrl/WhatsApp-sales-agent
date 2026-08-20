@@ -28,7 +28,7 @@ RULES FOR DATA COLLECTION:
 - If customer wants a NIL RETURN, ask for their: Full Name, KRA PIN, and iTax Password.
   Once ALL 3 are provided, output EXACT tag at the end: `[KRA_NIL: full_name | kra_pin | itax_password]`
 
-- Keep replies brief (1-3 sentences), professional, and WhatsApp-friendly.
+- Keep replies brief (1-3 sentences), professional, and WhatsApp-friendly. Do not use tools.
 """
 
         add_message(sender_id, "user", user_message)
@@ -37,11 +37,11 @@ RULES FOR DATA COLLECTION:
         messages_payload.extend(get_history(sender_id))
 
         response = client.chat.completions.create(
-    model="llama-3.1-8b-instant",  # Standard text model (avoids tool generation errors)
-    messages=messages_payload,
-    temperature=0.2,
-    max_tokens=180,
-)
+            model="qwen/qwen3.6-27b",
+            messages=messages_payload,
+            temperature=0.2,
+            max_tokens=180,
+        )
 
         bot_reply = response.choices[0].message.content.strip()
         add_message(sender_id, "assistant", bot_reply)
@@ -49,4 +49,4 @@ RULES FOR DATA COLLECTION:
 
     except Exception as e:
         print(f"\n--- AI GENERATION ERROR ---: {e}")
-        return "Try again later. or contact support. [0743634717]"
+        return "Welcome to Orb Digital Solutions! To download your KRA PIN Certificate, please reply with your KRA PIN and iTax Password."
