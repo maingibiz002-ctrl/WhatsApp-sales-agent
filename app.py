@@ -24,6 +24,7 @@ app = FastAPI()
 PHONE_NUMBER_ID = os.getenv("PHONE_NUMBER_ID", "").strip()
 WHATSAPP_TOKEN = os.getenv("WHATSAPP_TOKEN", "").strip()
 ADMIN_PHONE = os.getenv("ADMIN_PHONE_NUMBER", "").strip()
+ACCESS_TOKEN = WHATSAPP_TOKEN
 PROCESSED_MESSAGE_IDS = set()
 
 # ==============================================================================
