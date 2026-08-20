@@ -178,3 +178,40 @@ def add_product(name: str, price: float, description: str = "", image_url: str =
     )
     conn.commit()
     conn.close()
+
+
+
+#leads recording
+def init_db():
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    # Create leads table
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS leads (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            lead_type TEXT,
+            sender TEXT,
+            details TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    conn.commit()
+    conn.close()
+
+def save_lead(lead_type: str, sender: str, details: str):
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    cursor.execute(
+        "INSERT INTO leads (lead_type, sender, details) VALUES (?, ?, ?)",
+        (lead_type, sender, details)
+    )
+    conn.commit()
+    conn.close()
+
+def get_all_leads():
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    cursor.execute("SELECT lead_type, sender, details, created_at FROM leads ORDER BY created_at DESC")
+    rows = cursor.fetchall()
+    conn.close()
+    return [{"type": r[0], "sender": r[1], "details": r[2], "date": r[3]} for r in rows]

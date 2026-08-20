@@ -389,8 +389,9 @@
                         </tbody>
                     </table>
                 </div>
-            </div>
 
+            </div>
+            
             <!-- Right Column: Add Product Form -->
             <div>
                 <div class="card">
@@ -418,3 +419,34 @@
     </div>
 </body>
 </html>
+
+<!-- Incoming Leads Section -->
+<div class="mt-8">
+    <h2 class="text-xl font-bold mb-4">Captured Inquiries & Leads</h2>
+    <div class="overflow-x-auto bg-white rounded-lg shadow">
+        <table class="min-w-full text-left text-sm">
+            <thead class="bg-gray-100 border-b">
+                <tr>
+                    <th class="p-3">Type</th>
+                    <th class="p-3">WhatsApp Number</th>
+                    <th class="p-3">Details</th>
+                    <th class="p-3">Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for lead in leads %}
+                <tr class="border-b hover:bg-gray-50">
+                    <td class="p-3 font-semibold text-blue-600">{{ lead.type }}</td>
+                    <td class="p-3">{{ lead.sender }}</td>
+                    <td class="p-3">{{ lead.details }}</td>
+                    <td class="p-3 text-gray-500">{{ lead.date }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="4" class="p-4 text-center text-gray-500">No captured leads yet.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
