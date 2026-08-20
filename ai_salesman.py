@@ -8,15 +8,13 @@ from memory import add_message, get_history
 load_dotenv(override=True)
 
 client = OpenAI(
-    base_url="https://api.groq.com/openai/v1", 
-    api_key=os.getenv("GROQ_API_KEY")
+    base_url="https://api.groq.com/openai/v1", api_key=os.getenv("GROQ_API_KEY")
 )
 
 
 def generate_intelligent_reply(sender_id: str, user_message: str) -> str:
     """Generates a dynamic sales reply strictly focused on KRA PIN application services."""
     try:
-        # Fetch fresh catalog context from database
         current_catalog = get_formatted_catalog()
 
         system_prompt = f"""
@@ -50,16 +48,15 @@ CURRENT SERVICE CATALOG:
 {current_catalog}
 """
 
-        # Save user message to memory
         add_message(sender_id, "user", user_message)
 
         messages_payload = [{"role": "system", "content": system_prompt}]
         messages_payload.extend(get_history(sender_id))
 
         response = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",  # Updated to Groq's active model
+            model="openai/gpt-oss-20b",  # Updated to Groq's universally available model ID
             messages=messages_payload,
-            temperature=0.3,  # Lowered temperature for strict instruction adherence
+            temperature=0.3,
             max_tokens=180,
         )
 
