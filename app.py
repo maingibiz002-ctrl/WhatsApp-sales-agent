@@ -175,7 +175,7 @@ def process_whatsapp_message(sender: str, message_body: str):
 
             reply = re.sub(r"\[STORE_INQUIRY:.*?\]", "", reply).strip()
 
-        # Step D: Route response (Send Media Image with Caption OR Plain Text)
+        # Step D: Route response (Send Native WhatsApp Image OR Plain Text)
         image_match = re.search(r"\[IMAGE:\s*(https?://[^\s\]]+)\]", reply)
         if image_match:
             image_url = image_match.group(1)
