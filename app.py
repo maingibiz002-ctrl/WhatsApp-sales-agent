@@ -1,5 +1,6 @@
 import os
 import re
+import time
 import logging
 import requests
 from fastapi import FastAPI, Request, BackgroundTasks
@@ -196,17 +197,20 @@ def process_whatsapp_message(sender: str, message_body: str):
             reply = re.sub(r"\[STORE_INQUIRY:.*?\]", "", reply).strip()
 
         # Step D: Route response to customer (and echo AI reply to Admin)
-        image_match = re.search(r"\[IMAGE:\s*(https?://[^\s\]]+)\]", reply)
+        image_match = re.search(r"\[IMAGE:\s*(https?://[^\s\]]+)\]", reply, re.IGNORECASE)
         
         if image_match:
             image_url = image_match.group(1).strip()
             # Completely strip image tag so no raw links appear in customer text
-            clean_caption = re.sub(r"\[IMAGE:\s*https?://[^\s\]]+\]", "", reply).strip()
+            clean_caption = re.sub(r"\[IMAGE:\s*https?://[^\s\]]+\]", "", reply, flags=re.IGNORECASE).strip()
             
             # 1. Send text description first
             send_whatsapp_message(clean_sender, clean_caption)
             
-            # 2. Send native product photo
+            # 2. Add 1-second delay so Meta processes API calls sequentially
+            time.sleep(1)
+            
+            # 3. Send native product photo
             send_whatsapp_image(clean_sender, image_url, caption="")
             
             # Echo to Admin live chat feed
@@ -216,7 +220,7 @@ def process_whatsapp_message(sender: str, message_body: str):
                     f"🤖 *AI BOT (to +{clean_sender}):*\n{clean_caption}\n📷 [Product Photo Dispatched]"
                 )
         else:
-            # Text-only response (Discovery / Preference Gathering / Checkout Phase)
+            # Text-only response (Discovery / Preference Gathering / Checkout Stage)
             send_whatsapp_message(clean_sender, reply)
             
             # Echo to Admin live chat feed
