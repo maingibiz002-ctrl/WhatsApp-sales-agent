@@ -163,7 +163,7 @@ def process_whatsapp_message(sender: str, message_body: str, background_tasks: B
             reply = re.sub(r"\[KRA_NIL:.*?\]", "", reply).strip()
             logger.info(f"📝 [KRA NIL Return Captured] Name: {full_name} | PIN: {kra_pin}")
 
-            pay_res = paystack_client.trigger_mpesa_stk_push(phone_number=sender, amount=200.0)
+            pay_res = paystack_client.trigger_mpesa_stk_push(phone_number=sender, amount=10.0)
             if pay_res.get("status"):
                 reply += "\n\n💳 *Payment Prompt Sent!* Please enter your M-Pesa PIN on your phone screen to start automatic filing."
             else:
@@ -181,7 +181,7 @@ def process_whatsapp_message(sender: str, message_body: str, background_tasks: B
             reply = re.sub(r"\[KRA_APP:.*?\]", "", reply).strip()
             logger.info(f"📝 [KRA New App] Name: {name} | ID: {nat_id}")
 
-            pay_res = paystack_client.trigger_mpesa_stk_push(phone_number=sender, amount=300.0)
+            pay_res = paystack_client.trigger_mpesa_stk_push(phone_number=sender, amount=10.0)
             if pay_res.get("status"):
                 reply += "\n\n💳 *Payment Prompt Sent!* Please enter your M-Pesa PIN on your phone screen to complete application."
             else:
