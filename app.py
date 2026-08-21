@@ -82,15 +82,19 @@ def send_whatsapp_image(to_phone: str, image_url: str, caption: str = ""):
     }
     payload = {
         "messaging_product": "whatsapp",
+        "recipient_type": "individual",
         "to": to_phone,
         "type": "image",
-        "image": {"link": image_url, "caption": caption},
+        "image": {
+            "link": image_url.strip(),
+            "caption": caption.strip()
+        },
     }
 
     try:
         res = requests.post(url, json=payload, headers=headers, timeout=10)
         if res.status_code == 200:
-            logger.info(f"🖼️ [Outbound Image Sent] To: +{to_phone}")
+            logger.info(f"🖼️ [Outbound Native Image Sent] To: +{to_phone}")
         else:
             logger.error(f"❌ [Meta API Image Error] {res.status_code}: {res.text}")
     except Exception as e:
@@ -138,20 +142,20 @@ def send_admin_notification(title: str, client_sender: str, details: str):
 def process_whatsapp_message(sender: str, message_body: str):
     """
     Executes AI query analysis, extracts media/tags, logs leads, and sends customer responses.
+    Forwards live back-and-forth chat feed and final orders to the Admin number.
     """
     try:
-        # Step A: Notify Admin of incoming client inquiry
+        # Step A: Notify Admin of incoming customer message (Live Chat Feed)
         if sender != ADMIN_PHONE:
-            send_admin_notification(
-                title="New Client Inquiry",
-                client_sender=sender,
-                details=f"Message: \"{message_body}\""
+            send_whatsapp_message(
+                ADMIN_PHONE,
+                f"👤 *CLIENT (+{sender}):*\n{message_body}"
             )
 
         # Step B: Generate AI salesman response
         reply = generate_intelligent_reply(sender, message_body)
 
-        # Step C: Parse domain-specific action tags from AI response
+        # Step C: Parse and sanitize internal operational action tags
         tech_match = re.search(r"\[TECH_LEAD:\s*(.*?)\s*\|\s*(.*?)\s*\|\s*(.*?)\]", reply)
         store_match = re.search(r"\[STORE_INQUIRY:\s*(.*?)\s*\|\s*(.*?)\]", reply)
 
@@ -171,18 +175,37 @@ def process_whatsapp_message(sender: str, message_body: str):
             log_lead_to_file("STORE_INQUIRY", sender, details)
 
             if sender != ADMIN_PHONE:
-                send_admin_notification("🛒 CHATMALL ORDER READY FOR JFORCE", sender, details)
+                send_admin_notification("🛒 CHATMALL FINAL ORDER READY", sender, details)
 
             reply = re.sub(r"\[STORE_INQUIRY:.*?\]", "", reply).strip()
 
-        # Step D: Route response (Send Native WhatsApp Image OR Plain Text)
+        # Step D: Route response to customer (and echo AI reply to Admin)
         image_match = re.search(r"\[IMAGE:\s*(https?://[^\s\]]+)\]", reply)
+        
         if image_match:
-            image_url = image_match.group(1)
+            image_url = image_match.group(1).strip()
+            # Completely strip the image tag so zero link text is visible to the customer
             clean_caption = re.sub(r"\[IMAGE:\s*https?://[^\s\]]+\]", "", reply).strip()
+            
+            # Send native image to customer
             send_whatsapp_image(sender, image_url, caption=clean_caption)
+            
+            # Echo AI reply + Image link notice to Admin feed
+            if sender != ADMIN_PHONE:
+                send_whatsapp_message(
+                    ADMIN_PHONE, 
+                    f"🤖 *AI BOT (to +{sender}):*\n[Sent Photo] {clean_caption}"
+                )
         else:
+            # Send text to customer
             send_whatsapp_message(sender, reply)
+            
+            # Echo AI text reply to Admin feed
+            if sender != ADMIN_PHONE:
+                send_whatsapp_message(
+                    ADMIN_PHONE, 
+                    f"🤖 *AI BOT (to +{sender}):*\n{reply}"
+                )
 
         logger.info(f"🤖 [AI Response Dispatched] To: +{sender}")
 
